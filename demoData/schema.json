@@ -1,0 +1,54 @@
+{
+  "name": "UK Houses Price Paid",
+  "columns": [
+    {
+      "name" : "Transaction unique identifier",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Price",
+      "type" : "INTEGER"
+    },{
+      "name" : "Date of Transfer",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Postcode",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Property Type",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Old/New",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Duration",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "PAON",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "SAON",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "Street",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "Locality",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "Town/City",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "District",
+      "type" : "UNICODE_STRING"
+    },{
+      "name" : "County",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "PPD Category Type",
+      "type" : "CHAR_STRING"
+    },{
+      "name" : "Record Status",
+      "type" : "CHAR_STRING"
+    }
+  ]
+}
