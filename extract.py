@@ -11,8 +11,7 @@ from downloads3 import getS3File
 
 from tableauhyperapi import HyperProcess, Connection, TableDefinition, SqlType, Telemetry, Inserter, CreateMode
 
-
-typeObj = { "BOOLEAN" : Type.BOOLEAN , "CHAR_STRING" : Type.CHAR_STRING , "DATE" : Type.DATE , "DATETIME" : Type.DATETIME , "DOUBLE" : Type.DOUBLE , "DURATION" : Type.DURATION , "INTEGER" : Type.INTEGER , "SPATIAL" : Type.SPATIAL , "UNICODE_STRING" : Type.UNICODE_STRING }
+typeObj = { "BIG_INT" : SqlType.big_int(), "BOOLEAN" : SqlType.bool() , "BYTES" : SqlType.bytes() , "CHAR" : SqlType.char() , "DATE" : SqlType.date(), "DOUBLE" : SqlType.double(), "GEOGRAPHY" : SqlType.geography(), "INT" : SqlType.int(), "INTERVAL" : SqlType.interval(), "JSON" : SqlType.json(), "NUMERIC" : SqlType.numeric(), "OID" : SqlType.oid(), "SMALL_INT" : SqlType.small_int(), "TEXT" : SqlType.text(), "TIME" : SqlType.time(), "TIMESTAMP" : SqlType.timestamp(), "TIMESTAMP_TZ" : SqlType.timestamp_tz(), "VARCHAR" : SqlType.varchar() }
 
 def parseArguments():
     parser = argparse.ArgumentParser( description='Tableau S3 CSV to Hyper ÇParser by Craig Bloodworth, The Information Lab', formatter_class=argparse.RawTextHelpFormatter )
