@@ -9,8 +9,7 @@ import os
 from datetime import datetime
 from downloads3 import getS3File
 
-from tableausdk import *
-from tableausdk.HyperExtract import *
+from tableauhyperapi import HyperProcess, Connection, TableDefinition, SqlType, Telemetry, Inserter, CreateMode
 
 collationObj = {"AR" : Collation.AR , "BINARY" : Collation.BINARY , "CS" : Collation.CS , "CS_CI" : Collation.CS_CI , "CS_CI_AI" : Collation.CS_CI_AI , "DA" : Collation.DA , "DE" : Collation.DE , "EL" : Collation.EL , "EN_GB" : Collation.EN_GB , "EN_US" : Collation.EN_US , "EN_US_CI" : Collation.EN_US_CI , "ES" : Collation.ES , "ES_CI_AI" : Collation.ES_CI_AI , "ET" : Collation.ET , "FI" : Collation.FI , "FR_CA" : Collation.FR_CA , "FR_FR" : Collation.FR_FR , "FR_FR_CI_AI" : Collation.FR_FR_CI_AI , "HE" : Collation.HE , "HU" : Collation.HU , "IS" : Collation.IS , "IT" : Collation.IT , "JA" : Collation.JA , "JA_JIS" : Collation.JA_JIS , "KO" : Collation.KO , "LT" : Collation.LT , "LV" : Collation.LV , "NL_NL" : Collation.NL_NL , "NN" : Collation.NN , "PL" : Collation.PL , "PT_BR" : Collation.PT_BR , "PT_BR_CI_AI" : Collation.PT_BR_CI_AI , "PT_PT" : Collation.PT_PT , "ROOT" : Collation.ROOT , "RU" : Collation.RU , "SL" : Collation.SL , "SV_FI" : Collation.SV_FI , "SV_SE" : Collation.SV_SE , "TR" : Collation.TR , "UK" : Collation.UK , "VI" : Collation.VI , "ZH_HANS_CN" : Collation.ZH_HANS_CN , "ZH_HANT_TW" : Collation.ZH_HANT_TW }
 
