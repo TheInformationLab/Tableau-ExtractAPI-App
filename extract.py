@@ -70,11 +70,9 @@ def parseArguments():
     return vars( parser.parse_args() )
 
 def importSchema(
-    schemaFilename,
-    extractFilename
+    schemaFilename
 ):
     try:
-        extract = Extract( extractFilename )
         with open(schemaFilename) as schema_file:
             data = json.load(schema_file)
 
@@ -86,37 +84,29 @@ def importSchema(
                 print('[ERROR] No columns defined in the schema json. Key \'columns\' required of type [OBJECT]:\nExiting now\n.')
                 exit( -1 )
 
-            if ( not extract.hasTable( data['name'] ) ):
-                schema = TableDefinition()
+            table_def = TableDefinition(data['name']);
 
-                if ( 'collation' in data and data['collation'] in collationObj):
-                    schema.setDefaultCollation( collationObj[data['collation']] )
-                else:
-                    schema.setDefaultCollation( collationObj['BINARY'] )
-
-                schema = TableDefinition()
-                for c in data['columns']:
-                    if ( 'name' not in c ):
-                        print('No column name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
-                        exit( -1 )
-                    colType = Type.UNICODE_STRING
-                    if( 'type' in c and c['type'] in typeObj):
-                        colType = typeObj[c['type']]
-                    if( 'collation' in c and c['collation'] in collationObj):
-                        schema.addColumnWithCollation( c['name'], colType, c['collation'] )
-                    else:
-                        schema.addColumn( c['name'], colType )
-
-                table = extract.addTable( data['name'], schema )
-                if ( table == None ):
-                    print('[ERROR] A fatal error occurred while creating the table:\nExiting now\n.')
+            for c in data['columns']:
+                if ( 'name' not in c ):
+                    print('No column name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
                     exit( -1 )
+                colType = typeObj.TEXT
+                colCollation = None
+                if( 'type' in c and c['type'] in typeObj):
+                    colType = typeObj[c['type']]
+                if( 'collation' in c and c['collation'] in collationObj):
+                    colCollation = collationObj[c['collation']] )
+                table_def.add_column(c['name'], colType, colCollation)
+
+            if ( table_def == None ):
+                print('[ERROR] A fatal error occurred while creating the table:\nExiting now\n.')
+                exit( -1 )
 
     except TableauException as e:
         print('[ERROR] A fatal error occurred while reading the schema definition:\n', e, '\nExiting now.')
         exit( -1 )
 
-    return extract
+    return table_def
 
 #------------------------------------------------------------------------------
 #   Populate Extract
