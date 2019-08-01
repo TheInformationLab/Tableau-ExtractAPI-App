@@ -1,54 +1,64 @@
 {
-  "name": "UK Houses Price Paid",
+  "name": "house_prices",
+  "files": ["./demoData/pp-complete.csv"],
   "columns": [
     {
       "name" : "Transaction unique identifier",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 50
     },{
       "name" : "Price",
       "type" : "INTEGER"
     },{
       "name" : "Date of Transfer",
-      "type" : "CHAR_STRING"
+      "type" : "DATE",
+      "length" : 30,
+      "format" : "%d/%m/%Y"
     },{
       "name" : "Postcode",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 10
     },{
       "name" : "Property Type",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 1
     },{
       "name" : "Old/New",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 1
     },{
       "name" : "Duration",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 1
     },{
       "name" : "PAON",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "SAON",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "Street",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "Locality",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "Town/City",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "District",
-      "type" : "UNICODE_STRING"
+      "type" : "TEXT"
     },{
       "name" : "County",
-      "type" : "CHAR_STRING"
+      "type" : "TEXT"
     },{
       "name" : "PPD Category Type",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 1
     },{
       "name" : "Record Status",
-      "type" : "CHAR_STRING"
+      "type" : "CHAR",
+      "length" : 1
     }
   ]
 }

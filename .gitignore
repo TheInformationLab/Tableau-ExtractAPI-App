@@ -1,7 +1,13 @@
 tableausdk
+tableauhyperapi
 build
 dist
 __pycache__
 *.csv
 *.hyper
 awsLambda/function.zip
+awsLambda/function.old.zip
+awsLambda/function/
+*.spec
+extract.spec
+hyperd.log

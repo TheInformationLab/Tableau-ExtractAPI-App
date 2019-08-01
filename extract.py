@@ -6,12 +6,14 @@ import textwrap
 import json
 import csv
 import os
+
+from tqdm import tqdm
 from datetime import datetime
-from downloads3 import getS3File
+from cloud import getS3File
 
-from tableauhyperapi import HyperProcess, Connection, TableDefinition, SqlType, Telemetry, Inserter, CreateMode
+from tableauhyperapi import HyperProcess, Connection, TableDefinition, SqlType, Telemetry, Inserter, CreateMode, HyperException, print_exception
 
-typeObj = { "BIG_INT" : SqlType.big_int(), "BOOLEAN" : SqlType.bool() , "BYTES" : SqlType.bytes() , "CHAR" : SqlType.char() , "DATE" : SqlType.date(), "DOUBLE" : SqlType.double(), "GEOGRAPHY" : SqlType.geography(), "INT" : SqlType.int(), "INTERVAL" : SqlType.interval(), "JSON" : SqlType.json(), "NUMERIC" : SqlType.numeric(), "OID" : SqlType.oid(), "SMALL_INT" : SqlType.small_int(), "TEXT" : SqlType.text(), "TIME" : SqlType.time(), "TIMESTAMP" : SqlType.timestamp(), "TIMESTAMP_TZ" : SqlType.timestamp_tz(), "VARCHAR" : SqlType.varchar() }
+typeObj = { "BIG_INT" : SqlType.big_int, "BOOLEAN" : SqlType.bool , "BYTES" : SqlType.bytes , "CHAR" : SqlType.char , "DATE" : SqlType.date, "DOUBLE" : SqlType.double, "GEOGRAPHY" : SqlType.geography, "INT" : SqlType.int, "INTERVAL" : SqlType.interval, "JSON" : SqlType.json, "NUMERIC" : SqlType.numeric, "OID" : SqlType.oid, "SMALL_INT" : SqlType.small_int, "TEXT" : SqlType.text, "TIME" : SqlType.time, "TIMESTAMP" : SqlType.timestamp, "TIMESTAMP_TZ" : SqlType.timestamp_tz, "VARCHAR" : SqlType.varchar }
 
 def parseArguments():
     parser = argparse.ArgumentParser( description='Tableau S3 CSV to Hyper ÇParser by Craig Bloodworth, The Information Lab', formatter_class=argparse.RawTextHelpFormatter )
@@ -20,22 +22,17 @@ def parseArguments():
                     JSON file containing the SCHEMA of the source CSV file.
                     (required)
                     ''' ) )
-    parser.add_argument( '-f', '--filename', action='store', metavar='FILENAME', required=True,
-				help=textwrap.dedent('''\
-				   Source CSV file containing data to add to the extract.
-				   (required)
-				   ''' ) )
-    parser.add_argument( '-a', '--accesskey', action='store', metavar='ACCESSKEY', required=True, #default=,
+    parser.add_argument( '-a', '--accesskey', action='store', metavar='ACCESSKEY', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS Access Key with permission to read the S3 bucket.
 				   (required)
 				   ''' ) )
-    parser.add_argument( '-k', '--secretkey', action='store', metavar='SECRETKEY', required=True, #default=,
+    parser.add_argument( '-k', '--secretkey', action='store', metavar='SECRETKEY', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS Secret Key belonging to the access key.
 				   (required)
 				   ''' ) )
-    parser.add_argument( '-b', '--bucket', action='store', metavar='BUCKET', required=True, #default=,
+    parser.add_argument( '-b', '--bucket', action='store', metavar='BUCKET', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS S3 Bucket containing the source CSV file.
 				   (required)
@@ -70,39 +67,56 @@ def parseArguments():
     return vars( parser.parse_args() )
 
 def importSchema(
-    schemaFilename
+    schemaJson
 ):
     try:
-        with open(schemaFilename) as schema_file:
-            data = json.load(schema_file)
+        if 'name' not in schemaJson:
+            print('[ERROR] No table name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
+            exit( -1 )
 
-            if 'name' not in data:
-                print('[ERROR] No table name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
+        if 'columns' not in schemaJson:
+            print('[ERROR] No columns defined in the schema json. Key \'columns\' required of type [OBJECT]:\nExiting now\n.')
+            exit( -1 )
+
+        table_def = TableDefinition(schemaJson['name']);
+
+        for c in schemaJson['columns']:
+            if ( 'name' not in c ):
+                print('No column name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
                 exit( -1 )
-
-            if 'columns' not in data:
-                print('[ERROR] No columns defined in the schema json. Key \'columns\' required of type [OBJECT]:\nExiting now\n.')
-                exit( -1 )
-
-            table_def = TableDefinition(data['name']);
-
-            for c in data['columns']:
-                if ( 'name' not in c ):
-                    print('No column name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
-                    exit( -1 )
-                colType = typeObj.TEXT
-                colCollation = None
-                if( 'type' in c and c['type'] in typeObj):
-                    colType = typeObj[c['type']]
-                if( 'collation' in c and c['collation'] in collationObj):
-                    colCollation = collationObj[c['collation']] )
+            colFunc = typeObj['TEXT']
+            if( 'type' in c and c['type'] in typeObj):
+                colFunc = typeObj[c['type']]
+                if (c['type'] == 'CHAR'):
+                    if ( 'length' not in c ):
+                        print('No length defined for CHAR column', c['name'],'\nKey \'length\' required of type INTEGER:\nExiting now\n.')
+                        exit( -1 )
+                    colType = colFunc(c['length'])
+                elif (c['type'] == 'VARCHAR'):
+                    if ( 'length' not in c ):
+                        print('No length defined for VARCHAR column', c['name'],'\nKey \'length\' required of type INTEGER:\nExiting now\n.')
+                        exit( -1 )
+                    colType = colFunc(c['length'])
+                elif (c['type'] == 'NUMERIC'):
+                    if ( 'precision' not in c or 'scale' not in c ):
+                        print('No precision and/or scale defined for NUMERIC column', c['name'],'\nKeys \'precision\' and \'scale\' required of type INTEGER:\nExiting now\n.')
+                        exit( -1 )
+                    colType = colFunc(c['precision'], c['scale'])
+                else:
+                    colType = colFunc()
+            else:
+                colType = colFunc()
+            if( 'collation' in c and c['collation'] in collationObj):
+                colCollation = collationObj[c['collation']]
                 table_def.add_column(c['name'], colType, colCollation)
+            else:
+                table_def.add_column(c['name'], colType)
 
-            if ( table_def == None ):
-                print('[ERROR] A fatal error occurred while creating the table:\nExiting now\n.')
-                exit( -1 )
+        if ( table_def == None ):
+            print('[ERROR] A fatal error occurred while creating the table:\nExiting now\n.')
+            exit( -1 )
 
-    except TableauException as e:
+    except HyperException as e:
         print('[ERROR] A fatal error occurred while reading the schema definition:\n', e, '\nExiting now.')
         exit( -1 )
 
@@ -111,52 +125,18 @@ def importSchema(
 #------------------------------------------------------------------------------
 #   Populate Extract
 #------------------------------------------------------------------------------
-#   (NOTE: This function assumes that the Tableau SDK Extract API is initialized)
 def populateExtract(
-    extract,
-    schemaFilename,
-    csvFilename,
-    skip
+    connection,
+    schemaJson,
+    filepath
 ):
     try:
-        with open(schemaFilename) as schema_file:
-            schemaJSON = json.load( schema_file )
-            table = extract.openTable( schemaJSON['name'] )
+        SQLCMD = 'COPY ' + schemaJson['name'] + ' from \'' + filepath + '\' WITH (FORMAT CSV);'
 
-            schema = table.getTableDefinition()
-            colCount = schema.getColumnCount();
-            with open(csvFilename, mode='r') as csv_file:
-                csv_reader = csv.reader(csv_file, delimiter=',')
-                rowIdx = 0
-                for csvrow in csv_reader:
-                    rowIdx = rowIdx + 1
-                    if (rowIdx > skip):
-                        cellIdx = 0
-                        row = Row( schema )
-                        for cell in csvrow:
-                            type = schema.getColumnType(cellIdx)
-                            if (type == 15):
-                                row.setCharString( cellIdx, cell)
-                            elif (type == 16):
-                                row.setString( cellIdx, cell)
-                            elif (type == 11):
-                                row.setBoolean( cellIdx, bool(cell))
-                            elif (type == 7):
-                                row.setInteger( cellIdx, int(cell))
-                            elif (type == 12):
-                                dateObj = datetime.strptime(cell)
-                                row.setDate( cellIdx, dateObj.year, dateObj.month, dateObj.day)
-                            else:
-                                print('[WARN] Unknown column type', schema.getColumnName(cellIdx), type)
+        connection.execute_command(SQLCMD)
 
-                            if (cellIdx >= colCount):
-                                print('[WARN] More columns in CSV than defined in schema. Skipping to next row.')
-                                break
-                            cellIdx = cellIdx + 1
-                        table.insert(row)
-
-    except TableauException as e:
-        print('[ERROR] A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
+    except HyperException as e:
+        print('[ERROR] A fatal error occurred while populating the extract:\n', print_exception(e), '\nExiting now.')
         exit( -1 )
 
 #------------------------------------------------------------------------------
@@ -168,25 +148,39 @@ def main():
     #Demo Key: AKIATK6I3PBQPNZKAKFL Secret: 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
     options = parseArguments()
 
-    if not options[ 'localread' ]:
-        s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], options[ 'filename' ], folder = options[ 'path' ])
+    # Create the table schema
+    print('[INFO] Importing schema file', options['schema'])
+    with open(options['schema']) as schema_file:
+        schemaJson = json.load(schema_file)
+        schema = importSchema( schemaJson )
+        print('[INFO] Schema Imported')
 
-    # Initialize the Tableau Extract API
-    ExtractAPI.initialize()
+        overwrite = CreateMode.CREATE
+        if (os.path.exists(options[ 'output' ]) and options[ 'overwrite' ]):
+            print('[INFO] Overwriteing existing', options[ 'output' ], 'file')
+            overwrite = CreateMode.CREATE_AND_REPLACE
 
-    if (os.path.exists(options[ 'output' ]) and options[ 'overwrite' ]):
-        print('[INFO] Overwriteing existing', options[ 'output' ], 'file')
-        os.remove(options[ 'output' ])
+        print('[INFO] Creating new local Hyper instance')
+        with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, 'TheInformationLab-CloudBucket-CSV') as hyper:
+            # Create the extract, replace it if it already exists
+            print('[INFO] Instance created. Building connection to', options['output'])
+            with Connection(hyper.endpoint, options['output'], overwrite) as connection:
+                print('[INFO] Connection established. Adding table to Hyper database')
+                connection.catalog.create_table(schema)
+                print('[INFO] The databse is ready to go. Let\'s get it populated')
+                if 'files' not in schemaJson:
+                    print('[ERROR] No files listed in the schema json. Key \'files\' required of type [STRING]:\nExiting now\n.')
+                    exit( -1 )
+                files = schemaJson['files']
 
-    # Create or Expand the Extract
-    extract = importSchema( options[ 'schema' ], options[ 'output' ] )
-    populateExtract( extract, options[ 'schema' ], options[ 'filename' ], options[ 'skip' ] )
-
-    # Flush the Extract to Disk
-    extract.close()
-
-    # Close the Tableau Extract API
-    ExtractAPI.cleanup()
+                for file in tqdm(files, ascii=True, desc='[INFO] Importing'):
+                    localfilepath = file
+                    if not options[ 'localread' ]:
+                        s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], file, folder = options[ 'path' ])
+                        localfilepath = './tmp/' + file
+                    populateExtract(connection, schemaJson, localfilepath)
+                connection.close()
+                print('[INFO] The data is in, your Hyper file is ready. Viz on Data Rockstar!')
 
     return 0
 
