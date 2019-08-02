@@ -16,7 +16,7 @@ from tableauhyperapi import HyperProcess, Connection, TableDefinition, SqlType, 
 typeObj = { "BIG_INT" : SqlType.big_int, "BOOLEAN" : SqlType.bool , "BYTES" : SqlType.bytes , "CHAR" : SqlType.char , "DATE" : SqlType.date, "DOUBLE" : SqlType.double, "GEOGRAPHY" : SqlType.geography, "INT" : SqlType.int, "INTERVAL" : SqlType.interval, "JSON" : SqlType.json, "NUMERIC" : SqlType.numeric, "OID" : SqlType.oid, "SMALL_INT" : SqlType.small_int, "TEXT" : SqlType.text, "TIME" : SqlType.time, "TIMESTAMP" : SqlType.timestamp, "TIMESTAMP_TZ" : SqlType.timestamp_tz, "VARCHAR" : SqlType.varchar }
 
 def parseArguments():
-    parser = argparse.ArgumentParser( description='Tableau S3 CSV to Hyper ÇParser by Craig Bloodworth, The Information Lab', formatter_class=argparse.RawTextHelpFormatter )
+    parser = argparse.ArgumentParser( description='Tableau CSV to Hyper Parser by Craig Bloodworth, The Information Lab', formatter_class=argparse.RawTextHelpFormatter )
     parser.add_argument( '-s', '--schema', action='store', metavar='SCHEMA', required=True,
                 help=textwrap.dedent('''\
                     JSON file containing the SCHEMA of the source CSV file.
@@ -25,17 +25,17 @@ def parseArguments():
     parser.add_argument( '-a', '--accesskey', action='store', metavar='ACCESSKEY', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS Access Key with permission to read the S3 bucket.
-				   (required)
+				   (optional)
 				   ''' ) )
     parser.add_argument( '-k', '--secretkey', action='store', metavar='SECRETKEY', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS Secret Key belonging to the access key.
-				   (required)
+				   (optional)
 				   ''' ) )
     parser.add_argument( '-b', '--bucket', action='store', metavar='BUCKET', #required=True, #default=,
 				help=textwrap.dedent('''\
 				   AWS S3 Bucket containing the source CSV file.
-				   (required)
+				   (optional)
 				   ''' ) )
     parser.add_argument( '-p', '--path', action='store', metavar='PATH', #default=,
 				help=textwrap.dedent('''\
@@ -47,9 +47,14 @@ def parseArguments():
 				   Filename of the extract to be created or extended.
 				   (optional, default='%(default)s')
 				   ''' ) )
-    parser.add_argument( '-n', '--skip', action='store', metavar='SKIP', default=0,
+    parser.add_argument( '-d', '--delimiter', action='store', metavar='DELIMITER', default=',',
 				help=textwrap.dedent('''\
-				   Skip first n rows. Defaults to zero.
+				   Specify the CSV delimiter character. Use \\\\t for tab delimited.
+				   (optional, default='%(default)s')
+				   ''' ) )
+    parser.add_argument( '-i', '--ignoreheader', action='store_true',
+				help=textwrap.dedent('''\
+				   Skip first line of each CSV file as they contain a header line.
 				   (optional, default='%(default)s')
 				   ''' ) )
     parser.add_argument( '-w', '--overwrite', action='store_true',
@@ -57,14 +62,48 @@ def parseArguments():
 				   Overwrite existing hyper file.
 				   (optional, default='%(default)s')
 				   ''' ) )
-
     parser.add_argument( '-l', '--localread', action='store_true',
 				help=textwrap.dedent('''\
 				   Skip S3 download and read local cached file.
 				   (optional, default='%(default)s')
 				   ''' ) )
+    parser.add_argument( '-t', '--temptable', action='store_true',
+				help=textwrap.dedent('''\
+				   Load first into a temp table.
+				   (optional, default='%(default)s')
+				   ''' ) )
 
     return vars( parser.parse_args() )
+
+def importTextSchema(
+    schemaJson
+):
+    try:
+        if 'name' not in schemaJson:
+            print('[ERROR] No table name defined in the schema json. Key \'name\' required of type STRING:\nExiting now\n.')
+            exit( -1 )
+
+        if 'columns' not in schemaJson:
+            print('[ERROR] No columns defined in the schema json. Key \'columns\' required of type [OBJECT]:\nExiting now\n.')
+            exit( -1 )
+
+        print('[INFO] Creating temp landing table.')
+        table_def = TableDefinition('temptable');
+
+        for c in schemaJson['columns']:
+            colFunc = typeObj['TEXT']
+            colType = colFunc()
+            table_def.add_column(c['name'], colType)
+
+        if ( table_def == None ):
+            print('[ERROR] A fatal error occurred while creating the temp table:\nExiting now\n.')
+            exit( -1 )
+
+    except HyperException as e:
+        print('[ERROR] A fatal error occurred while reading the schema definition:\n', e, '\nExiting now.')
+        exit( -1 )
+
+    return table_def
 
 def importSchema(
     schemaJson
@@ -128,12 +167,36 @@ def importSchema(
 def populateExtract(
     connection,
     schemaJson,
-    filepath
+    filepath,
+    ignoreheader,
+    delimiterChar,
+    temptable
 ):
     try:
-        SQLCMD = 'COPY ' + schemaJson['name'] + ' from \'' + filepath + '\' WITH (FORMAT CSV);'
+        header = ''
+        if (ignoreheader):
+            header = ' HEADER'
+            print('[INFO] Header flag specified. Ignoring first row of each file')
+        delimiter = 'WITH (FORMAT CSV)'
+        if (delimiterChar == '\\t'):
+            delimiter = 'DELIMITER E\'\\t\' CSV'
+        elif (delimiterChar != ','):
+            delimiter = 'DELIMITER \'' + delimiterChar + '\' CSV'
 
-        connection.execute_command(SQLCMD)
+        if (temptable) :
+            SQLCMD = 'COPY temptable FROM \'' + filepath + '\' ' + delimiter + header + ';'
+            print('[INFO] SQLCMD:', SQLCMD)
+            connection.execute_command(SQLCMD)
+            SQLCMD = 'INSERT INTO ' + schemaJson['name'] + ' SELECT * FROM temptable;'
+            print('[INFO] SQLCMD:', SQLCMD)
+            connection.execute_command(SQLCMD)
+            SQLCMD = 'DROP TABLE temptable;'
+            print('[INFO] SQLCMD:', SQLCMD)
+            connection.execute_command(SQLCMD)
+        else:
+            SQLCMD = 'COPY ' + schemaJson['name'] + ' FROM \'' + filepath + '\' ' + delimiter + header + ';'
+            print('[INFO] SQLCMD:', SQLCMD)
+            connection.execute_command(SQLCMD)
 
     except HyperException as e:
         print('[ERROR] A fatal error occurred while populating the extract:\n', print_exception(e), '\nExiting now.')
@@ -152,6 +215,8 @@ def main():
     print('[INFO] Importing schema file', options['schema'])
     with open(options['schema']) as schema_file:
         schemaJson = json.load(schema_file)
+        if (options['temptable']):
+            tempschema = importTextSchema ( schemaJson )
         schema = importSchema( schemaJson )
         print('[INFO] Schema Imported')
 
@@ -167,6 +232,8 @@ def main():
             with Connection(hyper.endpoint, options['output'], overwrite) as connection:
                 print('[INFO] Connection established. Adding table to Hyper database')
                 connection.catalog.create_table(schema)
+                if (options['temptable']):
+                    connection.catalog.create_table(tempschema)
                 print('[INFO] The databse is ready to go. Let\'s get it populated')
                 if 'files' not in schemaJson:
                     print('[ERROR] No files listed in the schema json. Key \'files\' required of type [STRING]:\nExiting now\n.')
@@ -178,7 +245,7 @@ def main():
                     if not options[ 'localread' ]:
                         s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], file, folder = options[ 'path' ])
                         localfilepath = './tmp/' + file
-                    populateExtract(connection, schemaJson, localfilepath)
+                    populateExtract(connection, schemaJson, localfilepath, options['ignoreheader'], options['delimiter'], options['temptable'])
                 connection.close()
                 print('[INFO] The data is in, your Hyper file is ready. Viz on Data Rockstar!')
 
