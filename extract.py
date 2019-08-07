@@ -244,7 +244,7 @@ def main():
                     localfilepath = file
                     if not options[ 'localread' ]:
                         s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], file, folder = options[ 'path' ])
-                        localfilepath = './tmp/' + file
+                        localfilepath = '/tmp/' + file
                     populateExtract(connection, schemaJson, localfilepath, options['ignoreheader'], options['delimiter'], options['temptable'])
                 connection.close()
                 print('[INFO] The data is in, your Hyper file is ready. Viz on Data Rockstar!')

@@ -1,0 +1,91 @@
+{
+  "title": "Extract Schema",
+  "required": [
+    "name",
+    "files",
+    "columns"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name of the Table to Create in the Hyper Extract",
+      "examples": [
+        "my_table"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "title": "Filenames to parse",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "title": "Filename",
+        "examples": [
+          "./folder/filename.csv"
+        ]
+      }
+    },
+    "columns": {
+      "type": "array",
+      "title": "Columns in CSV",
+      "description": "Total number of columns in schema must match the total number of columns in the CSV",
+      "items": {
+        "type": "object",
+        "title": "Column",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Column Name",
+            "examples": [
+              "Row ID"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "title": "Column Type",
+            "default": "TEXT",
+            "examples": [
+              "BIG_INT",
+              "BOOLEAN",
+              "BYTES",
+              "CHAR",
+              "DATE",
+              "DOUBLE",
+              "GEOGRAPHY",
+              "INT",
+              "INTERVAL",
+              "JSON",
+              "NUMERIC",
+              "OID",
+              "SMALL_INT",
+              "TEXT",
+              "TIME",
+              "TIMESTAMP",
+              "TIMESTAMP_TZ",
+              "VARCHAR"
+            ]
+          },
+          "length": {
+            "type": "integer",
+            "title": "Field Length",
+            "description": "Required for CHAR & VARCHAR column types"
+          },
+          "precision": {
+            "type": "integer",
+            "title": "Numeric precision",
+            "description": "Required for NUMERIC column types"
+          },
+          "scale": {
+            "type": "integer",
+            "title": "Numeric scale",
+            "description": "Required for NUMERIC column types"
+          }
+        }
+      }
+    }
+  }
+}
