@@ -1,0 +1,17 @@
+{
+  "name": "my_table",
+  "files": ["sourcedata.csv"],
+  "columns": [
+    {
+      "name" : "Column A",
+      "type" : "TEXT"
+    },{
+      "name" : "Column B",
+      "type" : "INTEGER"
+    },{
+      "name" : "Column C",
+      "type" : "VARCHAR",
+      "length" : 200
+    }
+  ]
+}
