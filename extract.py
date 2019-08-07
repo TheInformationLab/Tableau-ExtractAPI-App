@@ -192,11 +192,13 @@ def populateExtract(
             connection.execute_command(SQLCMD)
             SQLCMD = 'DROP TABLE temptable;'
             print('[INFO] SQLCMD:', SQLCMD)
-            connection.execute_command(SQLCMD)
+            recordCount = connection.execute_command(SQLCMD)
+            print('[INFO]', recordCount, 'records inserted')
         else:
             SQLCMD = 'COPY ' + schemaJson['name'] + ' FROM \'' + filepath + '\' ' + delimiter + header + ';'
             print('[INFO] SQLCMD:', SQLCMD)
-            connection.execute_command(SQLCMD)
+            recordCount = connection.execute_command(SQLCMD)
+            print('[INFO]', recordCount, 'records inserted')
 
     except HyperException as e:
         print('[ERROR] A fatal error occurred while populating the extract:\n', print_exception(e), '\nExiting now.')
