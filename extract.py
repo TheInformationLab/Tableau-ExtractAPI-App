@@ -211,7 +211,6 @@ def populateExtract(
 def main():
     # Parse Arguments
 
-    #Demo Key: AKIATK6I3PBQPNZKAKFL Secret: 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
     options = parseArguments()
 
     # Create the table schema
