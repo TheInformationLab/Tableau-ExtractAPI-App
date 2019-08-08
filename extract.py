@@ -6,6 +6,7 @@ import textwrap
 import json
 import csv
 import os
+import tempfile
 
 from tqdm import tqdm
 from datetime import datetime
@@ -245,8 +246,10 @@ def main():
                 for file in tqdm(files, ascii=True, desc='[INFO] Importing'):
                     localfilepath = file
                     if not options[ 'localread' ]:
-                        s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], file, folder = options[ 'path' ])
-                        localfilepath = '/tmp/' + file
+                        temp_dir = tempfile.TemporaryDirectory()
+                        print('[INFO] Downloading to temp dir', temp_dir.name)
+                        s3get = getS3File(options[ 'accesskey' ], options[ 'secretkey' ], options[ 'bucket' ], file, temp_dir.name, folder = options[ 'path' ])
+                        localfilepath = temp_dir.name + '/' + file
                     populateExtract(connection, schemaJson, localfilepath, options['ignoreheader'], options['delimiter'], options['temptable'])
                 connection.close()
                 print('[INFO] The data is in, your Hyper file is ready. Viz on Data Rockstar!')

@@ -6,6 +6,7 @@ def getS3File(
     secretKey,
     bucket,
     filename,
+    destination,
     folder=''
 ):
 
@@ -19,4 +20,4 @@ def getS3File(
         filepath = folder + '/'
     filepath = filepath + filename
 
-    return your_bucket.download_file(filepath,'/tmp/' + filename)
+    return your_bucket.download_file(filepath, destination + '/' + filename)
