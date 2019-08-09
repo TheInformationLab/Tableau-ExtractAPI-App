@@ -11,7 +11,7 @@ Using the latest Hyper API can dramatically increase the speed of generating Hyp
 #### Mac OS
 Once downloaded you'll need to give the binary execute permissions using `chmod +x ./extract`
 
-If you want to be able to run the extract command from any directory simply copy the binary to your `/usr/local/bin/` directory (`cp extract /usr/local/bin/extract` or if you want the command to be for instance `hyperextract` then the command would be `cp extract /usr/local/bin/hyperextract`)
+If you want to be able to run the extract command from any directory as a global command then simply copy the binary to your `/usr/local/bin/` directory (`cp extract /usr/local/bin/extract` or if you want the global command to be, for instance, `hyperextract` then the copy command would be `cp extract /usr/local/bin/hyperextract`)
 
 ## Usage
 
