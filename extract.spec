@@ -2,7 +2,7 @@
 
 block_cipher = None
 
-
+options = [ ('u', None, 'OPTION')]
 a = Analysis(['extract.py'],
              pathex=['/Users/craig/Documents/Github/tableau-extractAPI-app'],
              binaries=[],
@@ -19,6 +19,7 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
+          options,
           a.binaries,
           a.zipfiles,
           a.datas,
